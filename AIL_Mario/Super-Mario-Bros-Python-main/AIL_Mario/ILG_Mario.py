@@ -5,7 +5,7 @@ import pygame
 from os import listdir
 from os.path import isfile, join
 
-# initialisiert pygame
+# initialisiert pygam
 pygame.init()
 
 # Definiert Fensternamen
@@ -15,9 +15,9 @@ pygame.display.set_caption("Mario Bros")
 Globale Variablen
 '''
 BACKGROUND_COLOR = 84, 140, 255
-WINDOW_WIDTH, WINDOW_HEIGHT = 512, 512
+WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 600
 FPS = 60
-PLAYER_VEL = 6
+PLAYER_VEL = 5
 GRAVITY = 1
 ANIMATION_DELAY = 3
 
@@ -67,11 +67,11 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
 
 
 # Funktion holt gewünschten Block
-def get_block(x_image, y_image, size):
-    path = join("assets", "Terrain", "Block.png")  # Definiert Pfad des gewünschten Blocks
+def get_block(size):
+    path = join("assets", "Terrain", "Ground_Brown.png")  # Definiert Pfad des gewünschten Blocks
     image = pygame.image.load(path).convert_alpha()  # Holt Bild aus dem Pfad und gibt durchsichtigen Hintergrund
     surface = pygame.Surface((size, size), pygame.SRCALPHA, 32)  # Erstellt Image mit der gegebenen Size
-    rect = pygame.Rect(x_image, y_image, size, size)  # Holt die richtigen Pixel aus der Bilddatei
+    rect = pygame.Rect(0, 0, size, size)  # Holt die richtigen Pixel aus der Bilddatei
     surface.blit(image, (0, 0), rect)  # Zeichnet Block
     return pygame.transform.scale2x(surface)  # Skaliert Block
 
@@ -124,10 +124,6 @@ class Player(pygame.sprite.Sprite):
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * GRAVITY)  # Gravitation * Sekunden = Fallgeschwindigkeit
         self.move(self.x_vel, self.y_vel)
-
-        # Setzt Sprung-counter zurück, wenn Spielen nicht am Boden ist
-        if self.y_vel >= 1:
-            self.jump_count = 1
 
         self.fall_count += 1  # Zählt bei jedem Frame hoch
         self.update_sprite()
@@ -186,9 +182,9 @@ class Object(pygame.sprite.Sprite):
 
 # Klasse für Blöcke
 class Block(Object):  # Child class von Object
-    def __init__(self, x_image, y_image, x, y, width, height):
-        super().__init__(x, y, width, height)
-        block = get_block(x_image, y_image, width)
+    def __init__(self, x, y, size):
+        super().__init__(x, y, size, size)
+        block = get_block(size)
         self.image.blit(block, (0, 0))
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -269,93 +265,14 @@ def main(window):
 
     # Erstellt Spieler
     player = Player(100, 100, 50, 50)
-
-    # Erstellt Rohre
-    Pipe_1 = [Block(0, 16, (32 * 29), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipe_2 = [Block(0, 16, (32 * 39), WINDOW_HEIGHT - block_size * 5, 64, 96)]
-    Pipe_3 = [Block(0, 16, (32 * 47), WINDOW_HEIGHT - block_size * 6, 64, 128)]
-    Pipe_4 = [Block(0, 16, (32 * 58), WINDOW_HEIGHT - block_size * 6, 64, 128)]
-    Pipe_5 = [Block(0, 16, (32 * 164), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipe_6 = [Block(0, 16, (32 * 180), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipes = [*Pipe_1, *Pipe_2, *Pipe_3, *Pipe_4, *Pipe_5, *Pipe_6]
-
     # Erstellt Boden
-    ground_1 = [Block(0, 0, i * block_size, WINDOW_HEIGHT - m * block_size, block_size, block_size)
-                for i in range(-WINDOW_WIDTH // block_size, (32 * 70) // block_size)
-                for m in range(1, 3)]
-    ground_2 = [Block(0, 0, i * block_size, WINDOW_HEIGHT - m * block_size, block_size, block_size)
-                for i in range((32 * 72) // block_size, (32 * 87) // block_size)
-                for m in range(1, 3)]
-    ground_3 = [Block(0, 0, i * block_size, WINDOW_HEIGHT - m * block_size, block_size, block_size)
-                for i in range((32 * 89) // block_size, (32 * 154) // block_size)
-                for m in range(1, 3)]
-    ground_4 = [Block(0, 0, i * block_size, WINDOW_HEIGHT - m * block_size, block_size, block_size)
-                for i in range((32 * 156) // block_size, (32 * 226) // block_size)
-                for m in range(1, 3)]
-    grounds = [*ground_1, *ground_2, *ground_3, *ground_4]
-
-    # Erstellt Pyramiden
-    pyramid = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 3 * block_size, block_size, block_size)
-               for i in range((32 * 135) // block_size, ((32 * 136) + (32 * 3)) // block_size)]
-    pyramid_1 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 4 * block_size, block_size, block_size)
-                 for i in range(((32 * 135) + (32 * 1)) // block_size, ((32 * 136) + (32 * 3)) // block_size)]
-    pyramid_2 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 5 * block_size, block_size, block_size)
-                 for i in range(((32 * 135) + (32 * 2)) // block_size, ((32 * 136) + (32 * 3)) // block_size)]
-    pyramid_3 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 6 * block_size, block_size, block_size)
-                 for i in range(((32 * 135) + (32 * 3)) // block_size, ((32 * 136) + (32 * 3)) // block_size)]
-
-    pyramid_4 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 3 * block_size, block_size, block_size)
-                 for i in range((32 * 141) // block_size, ((32 * 142) + (32 * 3)) // block_size)]
-    pyramid_5 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 4 * block_size, block_size, block_size)
-                 for i in range(((32 * 141) + (32 * 0)) // block_size, ((32 * 142) + (32 * 2)) // block_size)]
-    pyramid_6 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 5 * block_size, block_size, block_size)
-                 for i in range(((32 * 141) + (32 * 0)) // block_size, ((32 * 142) + (32 * 1)) // block_size)]
-    pyramid_7 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 6 * block_size, block_size, block_size)
-                 for i in range(((32 * 141) + (32 * 0)) // block_size, ((32 * 142) + (32 * 0)) // block_size)]
-
-    pyramid_8 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 3 * block_size, block_size, block_size)
-                 for i in range((32 * 149) // block_size, ((32 * 150) + (32 * 4)) // block_size)]
-    pyramid_9 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 4 * block_size, block_size, block_size)
-                 for i in range(((32 * 149) + (32 * 1)) // block_size, ((32 * 150) + (32 * 4)) // block_size)]
-    pyramid_10 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 5 * block_size, block_size, block_size)
-                  for i in range(((32 * 149) + (32 * 2)) // block_size, ((32 * 150) + (32 * 4)) // block_size)]
-    pyramid_11 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 6 * block_size, block_size, block_size)
-                  for i in range(((32 * 149) + (32 * 3)) // block_size, ((32 * 150) + (32 * 4)) // block_size)]
-
-    pyramid_12 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 3 * block_size, block_size, block_size)
-                  for i in range((32 * 156) // block_size, ((32 * 157) + (32 * 3)) // block_size)]
-    pyramid_13 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 4 * block_size, block_size, block_size)
-                  for i in range(((32 * 156) + (32 * 0)) // block_size, ((32 * 157) + (32 * 2)) // block_size)]
-    pyramid_14 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 5 * block_size, block_size, block_size)
-                  for i in range(((32 * 156) + (32 * 0)) // block_size, ((32 * 157) + (32 * 1)) // block_size)]
-    pyramid_15 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 6 * block_size, block_size, block_size)
-                  for i in range(((32 * 156) + (32 * 0)) // block_size, ((32 * 157) + (32 * 0)) // block_size)]
-
-    pyramid_16 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 3 * block_size, block_size, block_size)
-                  for i in range((32 * 182) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_17 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 4 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 1)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_18 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 5 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 2)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_19 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 6 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 3)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_20 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 7 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 4)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_21 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 8 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 5)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_22 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 9 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 6)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-    pyramid_23 = [Block(16, 0, i * block_size, WINDOW_HEIGHT - 10 * block_size, block_size, block_size)
-                  for i in range(((32 * 182) + (32 * 7)) // block_size, ((32 * 183) + (32 * 8)) // block_size)]
-
-    pyramids = [*pyramid, *pyramid_1, *pyramid_2, *pyramid_3, *pyramid_4, *pyramid_5, *pyramid_6, *pyramid_7,
-                *pyramid_8, *pyramid_9, *pyramid_10, *pyramid_11, *pyramid_12, *pyramid_13, *pyramid_14, *pyramid_15,
-                *pyramid_16, *pyramid_17, *pyramid_18, *pyramid_19, *pyramid_20, *pyramid_21, *pyramid_22, *pyramid_23]
-
-    objects = [*grounds, *pyramids, *Pipes]
+    ground = [Block(i * block_size, WINDOW_HEIGHT - block_size, block_size)
+              for i in range(-WINDOW_WIDTH // block_size, (WINDOW_WIDTH * 2) // block_size)]
+    objects = [*ground, Block(0, WINDOW_HEIGHT - block_size * 2, block_size),
+               Block(block_size * 3, WINDOW_HEIGHT - block_size * 6, block_size)]
 
     offset_x = 0  # Variable für die Kamera versetzung
-    scroll_area_width = 250  # Variable definiert, wie weit man an den Rand gehen kann bevor die kamera scrollt
+    scroll_area_width = 300  # Variable definiert, wie weit man an den Rand gehen kann bevor die kamera scrollt
 
     game_is_running = True
     while game_is_running:
@@ -371,10 +288,8 @@ def main(window):
                     player.jump()
 
         player.loop(FPS)  # Funktion loopt bewegung
-
         handle_move(player, objects)  # Funktion holt Knopfdruck und setzt Vel
-        # Ruft draw Funktion auf und gibt das Fenster + den Spieler mit
-        draw(window, player, objects, offset_x)
+        draw(window, player, objects, offset_x)  # Ruft draw Funktion auf und gibt das Fenster + den Spieler mit
 
         # Versetzt Kamera offset, je nach Spielerposition
         if (((player.rect.right - offset_x >= WINDOW_WIDTH - scroll_area_width) and player.x_vel > 0) or

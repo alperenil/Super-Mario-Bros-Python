@@ -41,8 +41,8 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
 
     all_sprites = {}
 
-    for image in images:  # Für jedes Bild in images liste
-        # Ladet alle Bilder in sprite_sheet mit durchsichtigem hintergrund
+    for image in images:  # Für jedes Bild in images Array
+        # Ladet alle Bilder in sprite_sheet Variable mit durchsichtigem hintergrund
         sprite_sheet = pygame.image.load(join(path, image)).convert_alpha()
 
         sprites = []
@@ -106,28 +106,28 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += dx  # Bewegt Spieler in x Richtung
         self.rect.y += dy  # Bewegt Spieler in y Richtung
 
+        # Setzt Sprung-counter zurück, wenn Spielen nicht am Boden ist
+        if self.y_vel >= 1:
+            self.jump_count = 1
+
     # Bewegt Spieler nach links (Für Auswirkungen von Inputs)
     def move_left(self, vel):
         self.x_vel = -vel
-        if self.direction != "left":
+        if self.direction != "left":  # if Clause, damit Animationen nur zurückgesetzt werden, wenn man sich dreht
             self.direction = "left"
             self.animation_count = 0
 
     # Bewegt Spieler nach rechts (Für Auswirkungen von Inputs)
     def move_right(self, vel):
         self.x_vel = vel
-        if self.direction != "right":
+        if self.direction != "right":  # if Clause, damit Animationen nur zurückgesetzt werden, wenn man sich dreht
             self.direction = "right"
             self.animation_count = 0
 
     # Macht alles, was in jedem frame geprüft wird
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * GRAVITY)  # Gravitation * Sekunden = Fallgeschwindigkeit
-        self.move(self.x_vel, self.y_vel)
-
-        # Setzt Sprung-counter zurück, wenn Spielen nicht am Boden ist
-        if self.y_vel >= 1:
-            self.jump_count = 1
+        self.move(self.x_vel, self.y_vel)  # Bewegt Spieler in die Richtung seiner Geschwindigkeit
 
         self.fall_count += 1  # Zählt bei jedem Frame hoch
         self.update_sprite()
@@ -169,6 +169,63 @@ class Player(pygame.sprite.Sprite):
         win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
 
 
+# Klasse für die Gegner
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, width, height):
+        super().__init__()
+        self.width = width
+        self.height = height
+
+
+# Child Class für Goomba Gegner
+class Goomba(Enemy):
+    # Ruft Funktion auf, um Charakter Sprites zu holen
+    SPRITES = load_sprite_sheets("Enemies", "Goomba", 32, 32, True)
+
+    def __init__(self, x, y):
+        super().__init__(50, 50)
+        self.rect = pygame.Rect(x, y, 50, 50)
+        self.x_vel = 0
+        self.y_vel = 0
+        self.direction = "right"
+        self.animation_count = 0
+        self.fall_count = 0
+
+    # Methode bewegt Gegner (Für Gravitation und Kollisionserkennung)
+    def move(self, dx, dy):
+        self.rect.x += dx  # Bewegt Gegner in x Richtung
+        self.rect.y += dy  # Bewegt Gegner in y Richtung
+
+    # Macht alles, was in jedem frame geprüft wird
+    def loop(self, fps):
+        self.y_vel += min(1, (self.fall_count / fps) * GRAVITY)  # Gravitation * Sekunden = Fallgeschwindigkeit
+        self.move(self.x_vel, self.y_vel) # Bewegt Spieler in die Richtung seiner Geschwindigkeit
+
+        self.fall_count += 1  # Zählt bei jedem Frame hoch
+        self.update_sprite()
+
+    # Setzt Sprite
+    def update_sprite(self):
+        sprite_sheet = "walk"
+
+        # Ändert Sprite nach SPRITE_DELAY
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+        sprite_index = (self.animation_count // ANIMATION_DELAY) % len(sprites)
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+        self.update()
+
+    # Passt Hit-box an Sprite an
+    def update(self):
+        self.rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
+        self.mask = pygame.mask.from_surface(self.sprite)  # Sucht einzelne Pixel raus für Pixel perfekte Kollision
+
+    # Zeichnet Goomba
+    def draw(self, win, offset_x):
+        win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
+
+
 # Klasse für alle Objekte
 class Object(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, name=None):
@@ -194,15 +251,15 @@ class Block(Object):  # Child class von Object
 
 
 # Vertikale Kollision zwischen Spieler und objects
-def handle_vertical_collision(player, objects, dy):
+def handle_vertical_collision(player, objects, player_dy):
     collided_objects = []
     for obj in objects:
         if pygame.sprite.collide_mask(player, obj):  # Kollision wird hier für alle Objekte berechnet mithilfe der maske
-            if dy > 0:  # Prüft, ob Spieler von oben kollidiert
+            if player_dy > 0:  # Prüft, ob Spieler von oben kollidiert
                 # Setzt untere Seite vom Spieler gleich mit oberer Seite von Objekt
                 player.rect.bottom = obj.rect.top + 2
                 player.landed()  # Ruft Methode landed auf
-            elif dy < 0:  # Prüft, ob Spieler von unten kollidiert
+            elif player_dy < 0:  # Prüft, ob Spieler von unten kollidiert
                 # Setzt obere Seite vom Spieler gleich mit unterer Seite von Objekt
                 player.rect.top = obj.rect.bottom - 2
                 player.hit_head()  # Ruft Methode hit_head auf
@@ -246,11 +303,14 @@ def handle_move(player, objects):
 
 
 # Funktion "zeichnet" Hintergrund und Spieler bei Aufruf
-def draw(win, player, objects, offset_x):
-    win.fill(BACKGROUND_COLOR)
+def draw(win, player, objects, enemies, offset_x):
+    win.fill(BACKGROUND_COLOR)  # Füllt Hintergrund mit Hintergrundfarbe
 
     for obj in objects:
-        obj.draw(window, offset_x)
+        obj.draw(window, offset_x)  # Zeichnet alle objekte
+
+    for enemy in enemies:
+        enemy.draw(window, offset_x)  # Zeichnet alle Gegner
 
     player.draw(window, offset_x)
 
@@ -270,14 +330,20 @@ def main(window):
     # Erstellt Spieler
     player = Player(100, 100, 50, 50)
 
+    # Erstellt Goomba
+    goomba = Goomba(200, 200)
+
+    # Setzt gegner in eine Liste
+    enemies = [goomba]
+
     # Erstellt Rohre
-    Pipe_1 = [Block(0, 16, (32 * 29), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipe_2 = [Block(0, 16, (32 * 39), WINDOW_HEIGHT - block_size * 5, 64, 96)]
-    Pipe_3 = [Block(0, 16, (32 * 47), WINDOW_HEIGHT - block_size * 6, 64, 128)]
-    Pipe_4 = [Block(0, 16, (32 * 58), WINDOW_HEIGHT - block_size * 6, 64, 128)]
-    Pipe_5 = [Block(0, 16, (32 * 164), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipe_6 = [Block(0, 16, (32 * 180), WINDOW_HEIGHT - block_size * 4, 64, 64)]
-    Pipes = [*Pipe_1, *Pipe_2, *Pipe_3, *Pipe_4, *Pipe_5, *Pipe_6]
+    pipe_1 = [Block(0, 16, (32 * 29), WINDOW_HEIGHT - block_size * 4, 64, 64)]
+    pipe_2 = [Block(0, 16, (32 * 39), WINDOW_HEIGHT - block_size * 5, 64, 96)]
+    pipe_3 = [Block(0, 16, (32 * 47), WINDOW_HEIGHT - block_size * 6, 64, 128)]
+    pipe_4 = [Block(0, 16, (32 * 58), WINDOW_HEIGHT - block_size * 6, 64, 128)]
+    pipe_5 = [Block(0, 16, (32 * 164), WINDOW_HEIGHT - block_size * 4, 64, 64)]
+    pipe_6 = [Block(0, 16, (32 * 180), WINDOW_HEIGHT - block_size * 4, 64, 64)]
+    pipes = [*pipe_1, *pipe_2, *pipe_3, *pipe_4, *pipe_5, *pipe_6]
 
     # Erstellt Boden
     ground_1 = [Block(0, 0, i * block_size, WINDOW_HEIGHT - m * block_size, block_size, block_size)
@@ -352,7 +418,7 @@ def main(window):
                 *pyramid_8, *pyramid_9, *pyramid_10, *pyramid_11, *pyramid_12, *pyramid_13, *pyramid_14, *pyramid_15,
                 *pyramid_16, *pyramid_17, *pyramid_18, *pyramid_19, *pyramid_20, *pyramid_21, *pyramid_22, *pyramid_23]
 
-    objects = [*grounds, *pyramids, *Pipes]
+    objects = [*grounds, *pyramids, *pipes]
 
     offset_x = 0  # Variable für die Kamera versetzung
     scroll_area_width = 250  # Variable definiert, wie weit man an den Rand gehen kann bevor die kamera scrollt
@@ -370,11 +436,13 @@ def main(window):
                 if event.key == pygame.K_SPACE and player.jump_count < 1:
                     player.jump()
 
-        player.loop(FPS)  # Funktion loopt bewegung
+        # Funktion loopt bewegung
+        player.loop(FPS)
+        goomba.loop(FPS)
 
         handle_move(player, objects)  # Funktion holt Knopfdruck und setzt Vel
         # Ruft draw Funktion auf und gibt das Fenster + den Spieler mit
-        draw(window, player, objects, offset_x)
+        draw(window, player, objects, enemies, offset_x)
 
         # Versetzt Kamera offset, je nach Spielerposition
         if (((player.rect.right - offset_x >= WINDOW_WIDTH - scroll_area_width) and player.x_vel > 0) or

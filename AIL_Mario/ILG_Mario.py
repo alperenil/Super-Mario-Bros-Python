@@ -92,6 +92,7 @@ class Player(pygame.sprite.Sprite):
         self.animation_count = 0  # Counter für animationen
         self.fall_count = 0  # Counter für Fallzeit
         self.jump_count = 0  # Counter für Anzahl Sprünge
+        self.sprite = None
 
     # Methode sorgt für Sprung
     def jump(self):
@@ -190,6 +191,8 @@ class Goomba(Enemy):
         self.direction = "right"
         self.animation_count = 0
         self.fall_count = 0
+        self.mask = None
+        self.sprite = None
 
     # Methode bewegt Gegner (Für Gravitation und Kollisionserkennung)
     def move(self, dx, dy):
@@ -199,7 +202,7 @@ class Goomba(Enemy):
     # Macht alles, was in jedem frame geprüft wird
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * GRAVITY)  # Gravitation * Sekunden = Fallgeschwindigkeit
-        self.move(self.x_vel, self.y_vel) # Bewegt Spieler in die Richtung seiner Geschwindigkeit
+        self.move(self.x_vel, self.y_vel)  # Bewegt Spieler in die Richtung seiner Geschwindigkeit
 
         self.fall_count += 1  # Zählt bei jedem Frame hoch
         self.update_sprite()
@@ -322,7 +325,7 @@ Main Schleife
 '''
 
 
-def main(window):
+def main(win):
     clock = pygame.time.Clock()
 
     block_size = 32  # Variable für Blockgrösse
@@ -442,7 +445,7 @@ def main(window):
 
         handle_move(player, objects)  # Funktion holt Knopfdruck und setzt Vel
         # Ruft draw Funktion auf und gibt das Fenster + den Spieler mit
-        draw(window, player, objects, enemies, offset_x)
+        draw(win, player, objects, enemies, offset_x)
 
         # Versetzt Kamera offset, je nach Spielerposition
         if (((player.rect.right - offset_x >= WINDOW_WIDTH - scroll_area_width) and player.x_vel > 0) or
